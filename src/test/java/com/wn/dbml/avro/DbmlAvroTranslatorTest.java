@@ -136,7 +136,7 @@ class DbmlAvroTranslatorTest {
 	}
 	
 	@Test
-	void translateBothWithDuplicateEnumRef() {
+	void translateBothWithMultipleEnumRef() {
 		var dbml = """
 				Table User {
 					name varchar [not null]

@@ -127,29 +127,25 @@ public class DbmlAvroTranslator {
 		var columnType = column.getType();
 		if (enums.containsKey(columnType)) {
 			var enumSchema = enums.get(columnType);
-			if (enumSchema != null) {
-				if (column.getSettings().containsKey(ColumnSetting.NOT_NULL)) {
-					pw.printf("%s", enumSchema.indent(4).trim());
-				} else {
-					pw.printf("[%s, \"null\"]", enumSchema.indent(4).trim());
-				}
-				enums.put(columnType, null);
+			if (enumSchema == null) {
+				appendField(column, columnType, true, pw);
 			} else {
-				if (column.getSettings().containsKey(ColumnSetting.NOT_NULL)) {
-					pw.printf("\"%s\"", columnType);
-				} else {
-					pw.printf("[\"%s\", \"null\"]", columnType);
-				}
+				appendField(column, enumSchema.indent(4).trim(), false, pw);
+				enums.put(columnType, null);
 			}
 		} else {
-			var type = typeMapper.map(columnType);
-			if (column.getSettings().containsKey(ColumnSetting.NOT_NULL)) {
-				pw.printf("\"%s\"", type);
-			} else {
-				pw.printf("[\"%s\", \"null\"]", type);
-			}
+			appendField(column, typeMapper.map(columnType), true, pw);
 		}
 		pw.print("}");
+	}
+	
+	private void appendField(Column column, String type, boolean quoted, PrintWriter pw) {
+		var quote = quoted ? "\"" : "";
+		if (column.getSettings().containsKey(ColumnSetting.NOT_NULL)) {
+			pw.printf("%s%s%s", quote, type, quote);
+		} else {
+			pw.printf("[%s%s%s, \"null\"]", quote, type, quote);
+		}
 	}
 	
 	private Result translate(Enum anEnum) {
@@ -161,7 +157,7 @@ public class DbmlAvroTranslator {
 			pw.println("  \"type\": \"enum\",");
 			pw.printf("  \"%s\": \"%s\"", "name", name);
 			var namespace = config.namespace();
-			if (namespace != null && !namespace.isBlank()) {
+			if (namespace != null) {
 				validateNamespace(namespace);
 				pw.printf(",%n  \"%s\": \"%s\"", "namespace", namespace);
 			}
