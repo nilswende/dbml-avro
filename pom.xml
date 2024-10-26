@@ -6,10 +6,10 @@
 
     <groupId>io.github.nilswende</groupId>
     <artifactId>dbml-avro</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Transpiles DBML to Avro schemas.</description>
+    <description>Translates DBML to Avro schemas.</description>
     <url>${url}</url>
 
     <licenses>
