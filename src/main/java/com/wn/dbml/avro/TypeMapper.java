@@ -43,14 +43,30 @@ public class TypeMapper {
 			if (matcher.find()) {
 				var precision = matcher.group(1);
 				var group2 = matcher.group(2);
-				var scale = group2.isEmpty() ? "0" : group2;
+				var scale = group2.isEmpty() ? String.valueOf(config.defaultScale()) : group2;
+				validateDecimalArgs(precision, scale);
 				return ", \"precision\": %s, \"scale\": %s".formatted(precision, scale);
 			} else {
-				throw new IllegalArgumentException("Unspecified precision of type decimal");
+				throw new IllegalArgumentException("Unspecified precision for type decimal");
 			}
 		} else if (avroType.equals("duration")) {
 			return ", \"size\": 12";
 		}
 		return "";
+	}
+	
+	private void validateDecimalArgs(String precision, String scale) {
+		try {
+			validateDecimalArgs(Integer.parseInt(precision), Integer.parseInt(scale));
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Decimal arguments must be integers: (%s, %s)".formatted(precision, scale), e);
+		}
+	}
+	
+	private void validateDecimalArgs(int precision, int scale) {
+		if (precision <= 0)
+			throw new IllegalArgumentException("Precision must be a positive integer greater than zero.");
+		if (scale > precision)
+			throw new IllegalArgumentException("Scale must be less than or equal to the precision.");
 	}
 }

@@ -15,16 +15,19 @@ import static java.util.Map.entry;
  * @param namespace    The namespace of the generated Avro schemas
  * @param typeMappings Type mappings from Avro types to sets of DBML types.
  *                     A DBML column type matches an Avro type if it starts with any of the defined DBML types.
+ * @param defaultScale The scale to be used for decimals without an explicitly specified scale.
  * @see #builder()
  */
 public record Config(
 		String namespace,
-		Map<String, Set<String>> typeMappings) {
-	public Config(String namespace, Map<String, Set<String>> typeMappings) {
+		Map<String, Set<String>> typeMappings,
+		int defaultScale) {
+	public Config(String namespace, Map<String, Set<String>> typeMappings, int defaultScale) {
 		this.namespace = namespace;
 		this.typeMappings = typeMappings.entrySet().stream()
 				.map(e -> entry(normalize(e.getKey()), e.getValue().stream().map(this::normalize).collect(Collectors.toSet())))
 				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+		this.defaultScale = defaultScale;
 	}
 	
 	/**
@@ -59,10 +62,15 @@ public record Config(
 				entry("local-timestamp-micros", Set.of("timestamp with time zone", "timestamptz")),
 				entry("duration", Set.of("duration"))
 		);
+		/**
+		 * Avro's default scale is 0.
+		 */
+		public static final int DEFAULT_SCALE = 0;
 		
 		private String namespace = "";
 		private Map<String, Set<String>> typeMappings = DEFAULT_TYPE_MAPPINGS;
 		private boolean mutableMappings;
+		private int defaultScale = DEFAULT_SCALE;
 		
 		/**
 		 * Set the namespace for all translated schemas.
@@ -98,8 +106,19 @@ public record Config(
 			return this;
 		}
 		
+		/**
+		 * Set the scale to be used for decimals without an explicitly specified scale.
+		 *
+		 * @see #DEFAULT_SCALE
+		 */
+		public Builder setDefaultScale(int defaultScale) {
+			if (defaultScale < 0) throw new IllegalArgumentException("Scale must be zero or a positive integer");
+			this.defaultScale = defaultScale;
+			return this;
+		}
+		
 		public Config build() {
-			return new Config(namespace, typeMappings);
+			return new Config(namespace, typeMappings, defaultScale);
 		}
 	}
 }
