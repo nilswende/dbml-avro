@@ -27,7 +27,7 @@ class DbmlAvroTranslatorTest {
 				{
 				  "type": "record",
 				  "name": "User",
-				  "namespace": "com.wn",
+				  "namespace": "com.example",
 				  "doc": "table of users",
 				  "aliases": ["U"],
 				  "fields": [
@@ -37,7 +37,7 @@ class DbmlAvroTranslatorTest {
 				  ]
 				}
 				""";
-		var translated = new DbmlAvroTranslator(Config.builder().setNamespace("com.wn").build()).translate(dbml);
+		var translated = new DbmlAvroTranslator(Config.builder().setNamespace("com.example").build()).translate(dbml);
 		assertEquals(1, translated.size());
 		var map = toMap(translated);
 		var user = map.get("User");
@@ -59,11 +59,11 @@ class DbmlAvroTranslatorTest {
 				{
 				  "type": "enum",
 				  "name": "Suit",
-				  "namespace": "com.wn",
+				  "namespace": "com.example",
 				  "symbols": ["SPADES", "HEARTS", "DIAMONDS", "CLUBS"]
 				}
 				""";
-		var translated = new DbmlAvroTranslator(Config.builder().setNamespace("com.wn").build()).translate(dbml);
+		var translated = new DbmlAvroTranslator(Config.builder().setNamespace("com.example").build()).translate(dbml);
 		assertEquals(1, translated.size());
 		var map = toMap(translated);
 		var suit = map.get("Suit");
@@ -90,6 +90,6 @@ class DbmlAvroTranslatorTest {
 				}
 				""";
 		assertThrows(IllegalArgumentException.class, () ->
-				new DbmlAvroTranslator(Config.builder().setNamespace("com.über").build()).translate(dbml));
+				new DbmlAvroTranslator(Config.builder().setNamespace("com.exämple").build()).translate(dbml));
 	}
 }

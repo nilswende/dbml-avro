@@ -11,7 +11,7 @@ public class Example {
 				  id integer [not null]
 				  name varchar
 				}""";
-		var config = Config.builder().setNamespace("com.wn.dbml.avro").build();
+		var config = Config.builder().setNamespace("com.example").build();
 		// translate your DBML to Avro schemas
 		var translated = new DbmlAvroTranslator(config).translate(dbml);
 		// process the Avro schema JSONs

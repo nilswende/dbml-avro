@@ -17,7 +17,7 @@ class Example {
           id integer [not null]
           name varchar
         }""";
-    var config = Config.builder().setNamespace("com.wn.dbml.avro").build();
+    var config = Config.builder().setNamespace("com.example").build();
     // translate the DBML to Avro schemas
     var translated = new DbmlAvroTranslator(config).translate(dbml);
     // process the Avro schema JSONs
@@ -33,7 +33,7 @@ The resulting schema will look like this:
 {
   "type": "record",
   "name": "User",
-  "namespace": "com.wn.dbml.avro",
+  "namespace": "com.example",
   "fields": [
     {"name": "id", "type": "int"},
     {"name": "name", "type": ["string", "null"]}
