@@ -11,7 +11,9 @@ import com.wn.dbml.model.Table;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringWriter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -67,13 +69,14 @@ public class DbmlAvroTranslator {
 		var enums = database.getSchemas().stream()
 				.flatMap(schema -> schema.getEnums().stream().map(this::translate))
 				.toList();
+		var enumMap = enums.stream().collect(Collectors.toMap(Result::name, Result::schema));
 		var tables = database.getSchemas().stream()
-				.flatMap(schema -> schema.getTables().stream().map(table -> translate(table, enums)))
+				.flatMap(schema -> schema.getTables().stream().map(table -> translate(table, new HashMap<>(enumMap))))
 				.toList();
 		return Stream.concat(tables.stream(), enums.stream()).toList();
 	}
 	
-	private Result translate(Table table, List<Result> enums) {
+	private Result translate(Table table, Map<String, String> enums) {
 		var name = table.getName();
 		validateName(name);
 		var sw = new StringWriter();
@@ -102,7 +105,7 @@ public class DbmlAvroTranslator {
 		return new Result(name, sw.toString());
 	}
 	
-	private void appendFields(Table table, List<Result> enums, PrintWriter pw) {
+	private void appendFields(Table table, Map<String, String> enums, PrintWriter pw) {
 		for (var iterator = table.getColumns().iterator(); iterator.hasNext(); ) {
 			var column = iterator.next();
 			appendField(column, enums, pw);
@@ -112,7 +115,7 @@ public class DbmlAvroTranslator {
 		}
 	}
 	
-	private void appendField(Column column, List<Result> enums, PrintWriter pw) {
+	private void appendField(Column column, Map<String, String> enums, PrintWriter pw) {
 		var name = column.getName();
 		validateName(name);
 		pw.printf("    {\"%s\": \"%s\"", "name", name);
@@ -121,11 +124,25 @@ public class DbmlAvroTranslator {
 			pw.printf(", \"%s\": \"%s\"", "doc", doc);
 		}
 		pw.printf(", \"%s\": ", "type");
-		var enumType = enums.stream().filter(r -> r.name().equals(column.getType())).findAny().map(Result::schema);
-		if (enumType.isPresent()) {
-			pw.printf("%s", enumType.get().indent(4).trim());
+		var columnType = column.getType();
+		if (enums.containsKey(columnType)) {
+			var enumSchema = enums.get(columnType);
+			if (enumSchema != null) {
+				if (column.getSettings().containsKey(ColumnSetting.NOT_NULL)) {
+					pw.printf("%s", enumSchema.indent(4).trim());
+				} else {
+					pw.printf("[%s, \"null\"]", enumSchema.indent(4).trim());
+				}
+				enums.put(columnType, null);
+			} else {
+				if (column.getSettings().containsKey(ColumnSetting.NOT_NULL)) {
+					pw.printf("\"%s\"", columnType);
+				} else {
+					pw.printf("[\"%s\", \"null\"]", columnType);
+				}
+			}
 		} else {
-			var type = typeMapper.map(column.getType());
+			var type = typeMapper.map(columnType);
 			if (column.getSettings().containsKey(ColumnSetting.NOT_NULL)) {
 				pw.printf("\"%s\"", type);
 			} else {

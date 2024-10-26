@@ -97,7 +97,7 @@ class DbmlAvroTranslatorTest {
 		var dbml = """
 				Table User {
 					name varchar [not null]
-					favorite_suit Suit
+					favorite_suit Suit [not null]
 				}
 				
 				Enum Suit {
@@ -133,6 +133,73 @@ class DbmlAvroTranslatorTest {
 		var suit = map.get("Suit");
 		assertNotNull(suit);
 		assertEquals(expected.get(1), suit);
+	}
+	
+	@Test
+	void translateBothWithDuplicateEnumRef() {
+		var dbml = """
+				Table User {
+					name varchar [not null]
+					favorite_suit Suit [not null]
+					least_favorite_suit Suit [not null]
+				}
+				
+				Table User2 {
+					name varchar [not null]
+					favorite_suit Suit
+					least_favorite_suit Suit
+				}
+				
+				Enum Suit {
+					SPADES
+					HEARTS
+					DIAMONDS
+					CLUBS
+				}""";
+		var expected = List.of("""
+				{
+				  "type": "record",
+				  "name": "User",
+				  "fields": [
+				    {"name": "name", "type": "string"},
+				    {"name": "favorite_suit", "type": {
+				      "type": "enum",
+				      "name": "Suit",
+				      "symbols": ["SPADES", "HEARTS", "DIAMONDS", "CLUBS"]
+				    }},
+				    {"name": "least_favorite_suit", "type": "Suit"}
+				  ]
+				}""", """
+				{
+				  "type": "record",
+				  "name": "User2",
+				  "fields": [
+				    {"name": "name", "type": "string"},
+				    {"name": "favorite_suit", "type": [{
+				      "type": "enum",
+				      "name": "Suit",
+				      "symbols": ["SPADES", "HEARTS", "DIAMONDS", "CLUBS"]
+				    }, "null"]},
+				    {"name": "least_favorite_suit", "type": ["Suit", "null"]}
+				  ]
+				}""", """
+				{
+				  "type": "enum",
+				  "name": "Suit",
+				  "symbols": ["SPADES", "HEARTS", "DIAMONDS", "CLUBS"]
+				}""");
+		var translated = new DbmlAvroTranslator(Config.builder().build()).translate(dbml);
+		assertEquals(3, translated.size());
+		var map = toMap(translated);
+		var user = map.get("User");
+		assertNotNull(user);
+		assertEquals(expected.get(0), user);
+		var user2 = map.get("User2");
+		assertNotNull(user2);
+		assertEquals(expected.get(1), user2);
+		var suit = map.get("Suit");
+		assertNotNull(suit);
+		assertEquals(expected.get(2), suit);
 	}
 	
 	@Test
