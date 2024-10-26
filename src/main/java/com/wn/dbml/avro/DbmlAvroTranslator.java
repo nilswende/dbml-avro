@@ -64,14 +64,16 @@ public class DbmlAvroTranslator {
 	}
 	
 	private List<Result> translate(Database database) {
-		return database.getSchemas().stream()
-				.flatMap(schema -> Stream.concat(
-						schema.getTables().stream().map(this::translate),
-						schema.getEnums().stream().map(this::translate)))
+		var enums = database.getSchemas().stream()
+				.flatMap(schema -> schema.getEnums().stream().map(this::translate))
 				.toList();
+		var tables = database.getSchemas().stream()
+				.flatMap(schema -> schema.getTables().stream().map(table -> translate(table, enums)))
+				.toList();
+		return Stream.concat(tables.stream(), enums.stream()).toList();
 	}
 	
-	private Result translate(Table table) {
+	private Result translate(Table table, List<Result> enums) {
 		var name = table.getName();
 		validateName(name);
 		var sw = new StringWriter();
@@ -93,24 +95,24 @@ public class DbmlAvroTranslator {
 				pw.printf(",%n  \"%s\": [\"%s\"]", "aliases", alias);
 			}
 			pw.printf(",%n  \"%s\": [%n", "fields");
-			appendFields(table, pw);
+			appendFields(table, enums, pw);
 			pw.printf("%n  ]%n");
-			pw.println("}");
+			pw.print("}");
 		}
 		return new Result(name, sw.toString());
 	}
 	
-	private void appendFields(Table table, PrintWriter pw) {
+	private void appendFields(Table table, List<Result> enums, PrintWriter pw) {
 		for (var iterator = table.getColumns().iterator(); iterator.hasNext(); ) {
 			var column = iterator.next();
-			appendField(column, pw);
+			appendField(column, enums, pw);
 			if (iterator.hasNext()) {
 				pw.println(",");
 			}
 		}
 	}
 	
-	private void appendField(Column column, PrintWriter pw) {
+	private void appendField(Column column, List<Result> enums, PrintWriter pw) {
 		var name = column.getName();
 		validateName(name);
 		pw.printf("    {\"%s\": \"%s\"", "name", name);
@@ -119,13 +121,18 @@ public class DbmlAvroTranslator {
 			pw.printf(", \"%s\": \"%s\"", "doc", doc);
 		}
 		pw.printf(", \"%s\": ", "type");
-		var type = typeMapper.map(column.getType());
-		if (column.getSettings().containsKey(ColumnSetting.NOT_NULL)) {
-			pw.printf("\"%s\"", type);
+		var enumType = enums.stream().filter(r -> r.name().equals(column.getType())).findAny().map(Result::schema);
+		if (enumType.isPresent()) {
+			pw.printf("%s", enumType.get().indent(4).trim());
 		} else {
-			pw.printf("[\"%s\", \"null\"]", type);
+			var type = typeMapper.map(column.getType());
+			if (column.getSettings().containsKey(ColumnSetting.NOT_NULL)) {
+				pw.printf("\"%s\"", type);
+			} else {
+				pw.printf("[\"%s\", \"null\"]", type);
+			}
 		}
-		pw.append("}");
+		pw.print("}");
 	}
 	
 	private Result translate(Enum anEnum) {
@@ -146,7 +153,7 @@ public class DbmlAvroTranslator {
 					.map(EnumValue::getName)
 					.collect(Collectors.joining("\", \"", "\"", "\""));
 			pw.printf(",%n  \"%s\": [%s]%n", "symbols", symbols);
-			pw.println("}");
+			pw.print("}");
 		}
 		return new Result(name, sw.toString());
 	}
