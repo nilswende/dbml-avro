@@ -43,6 +43,10 @@ public record Config(
 	
 	public static class Builder {
 		/**
+		 * Avro's default namespace is the empty "null" namespace.
+		 */
+		public static final String DEFAULT_NAMESPACE = null;
+		/**
 		 * Default mapping from DBML types to Avro types.
 		 */
 		public static final Map<String, Set<String>> DEFAULT_TYPE_MAPPINGS = Map.ofEntries(
@@ -67,13 +71,15 @@ public record Config(
 		 */
 		public static final int DEFAULT_SCALE = 0;
 		
-		private String namespace = "";
+		private String namespace = DEFAULT_NAMESPACE;
 		private Map<String, Set<String>> typeMappings = DEFAULT_TYPE_MAPPINGS;
 		private boolean mutableMappings;
 		private int defaultScale = DEFAULT_SCALE;
 		
 		/**
 		 * Set the namespace for all translated schemas.
+		 *
+		 * @see #DEFAULT_NAMESPACE
 		 */
 		public Builder setNamespace(String namespace) {
 			this.namespace = namespace;

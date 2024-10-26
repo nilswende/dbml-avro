@@ -80,7 +80,7 @@ public class DbmlAvroTranslator {
 			pw.println("  \"type\": \"record\",");
 			pw.printf("  \"%s\": \"%s\"", "name", name);
 			var namespace = config.namespace();
-			if (namespace != null && !namespace.isBlank()) {
+			if (namespace != null) {
 				validateNamespace(namespace);
 				pw.printf(",%n  \"%s\": \"%s\"", "namespace", namespace);
 			}
