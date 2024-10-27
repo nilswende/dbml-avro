@@ -1,6 +1,8 @@
 package com.wn.dbml.avro;
 
+import org.apache.avro.Schema;
 import org.junit.jupiter.api.Test;
+import org.opentest4j.AssertionFailedError;
 
 import java.io.StringReader;
 import java.util.List;
@@ -12,6 +14,21 @@ import static org.junit.jupiter.api.Assertions.*;
 class DbmlAvroTranslatorTest {
 	static Map<String, String> toMap(List<DbmlAvroTranslator.Result> translated) {
 		return translated.stream().collect(Collectors.toMap(DbmlAvroTranslator.Result::name, DbmlAvroTranslator.Result::schema));
+	}
+	
+	static void validateSchemas(List<DbmlAvroTranslator.Result> schemas) {
+		schemas.forEach(r -> assertDoesNotThrow(() -> new Schema.Parser().parse(r.schema()), r.toString()));
+	}
+	
+	@Test
+	void testValidateSchemas() {
+		var invalidSchema = """
+				{
+				  "type": "unknown",
+				  "name": "User"
+				}""";
+		var list = List.of(new DbmlAvroTranslator.Result("User", invalidSchema));
+		assertThrows(AssertionFailedError.class, () -> validateSchemas(list));
 	}
 	
 	@Test
@@ -31,6 +48,7 @@ class DbmlAvroTranslatorTest {
 				  ]
 				}""";
 		var translated = new DbmlAvroTranslator(Config.builder().build()).translate(new StringReader(dbml));
+		validateSchemas(translated);
 		assertEquals(1, translated.size());
 		var map = toMap(translated);
 		var user = map.get("User");
@@ -61,6 +79,7 @@ class DbmlAvroTranslatorTest {
 				  ]
 				}""";
 		var translated = new DbmlAvroTranslator(Config.builder().setNamespace("com.example").build()).translate(dbml);
+		validateSchemas(translated);
 		assertEquals(1, translated.size());
 		var map = toMap(translated);
 		var user = map.get("User");
@@ -85,6 +104,7 @@ class DbmlAvroTranslatorTest {
 				  "symbols": ["SPADES", "HEARTS", "DIAMONDS", "CLUBS"]
 				}""";
 		var translated = new DbmlAvroTranslator(Config.builder().setNamespace("com.example").build()).translate(dbml);
+		validateSchemas(translated);
 		assertEquals(1, translated.size());
 		var map = toMap(translated);
 		var suit = map.get("Suit");
@@ -125,6 +145,7 @@ class DbmlAvroTranslatorTest {
 				  "symbols": ["SPADES", "HEARTS", "DIAMONDS", "CLUBS"]
 				}""");
 		var translated = new DbmlAvroTranslator(Config.builder().build()).translate(dbml);
+		validateSchemas(translated);
 		assertEquals(2, translated.size());
 		var map = toMap(translated);
 		var user = map.get("User");
@@ -189,6 +210,7 @@ class DbmlAvroTranslatorTest {
 				  "symbols": ["SPADES", "HEARTS", "DIAMONDS", "CLUBS"]
 				}""");
 		var translated = new DbmlAvroTranslator(Config.builder().build()).translate(dbml);
+		validateSchemas(translated);
 		assertEquals(3, translated.size());
 		var map = toMap(translated);
 		var user = map.get("User");
